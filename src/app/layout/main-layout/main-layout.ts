@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../features/auth/services/auth';
+import { CharactersService } from '../../features/characters/services/characters.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -12,6 +13,7 @@ import { AuthService } from '../../features/auth/services/auth';
 })
 export class MainLayout implements OnInit {
   private authService = inject(AuthService);
+  private characterService = inject(CharactersService);
   private router = inject(Router);
 
   charactersCount: number = 0;
@@ -25,9 +27,18 @@ export class MainLayout implements OnInit {
   }
 
   ngOnInit(): void {
-    // Aquí podría obtener el count de characters desde un servicio
-    // Por ahora lo dejamos como placeholder
-    this.charactersCount = 0;
+    // Obtener la cantidad real de personajes desde la API
+    if (this.isAuthenticated) {
+      this.characterService.getCharacters(1).subscribe({
+        next: (response) => {
+          this.charactersCount = response.info.count;
+        },
+        error: (err) => {
+          console.error('Error fetching characters count:', err);
+          this.charactersCount = 0;
+        }
+      });
+    }
   }
 
   logout(): void {

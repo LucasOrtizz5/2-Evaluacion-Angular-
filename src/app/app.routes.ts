@@ -40,6 +40,21 @@ export const routes: Routes = [
       import('./features/characters/character-detail/character-detail')
         .then(m => m.CharacterDetail)
   },
+  // Rutas de Episodes y Locations
+  {
+    path: 'episodes',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/characters/episodes-page/episodes-page')
+        .then(m => m.EpisodesPage)
+  },
+  {
+    path: 'locations',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/characters/locations-page/locations-page')
+        .then(m => m.LocationsPage)
+  },
   // Redirect por defecto a characters (si está autenticado irá a characters, si no, el guard redirige a login)
   {
     path: '',
