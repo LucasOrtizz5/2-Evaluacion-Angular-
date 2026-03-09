@@ -1,8 +1,8 @@
-import { PasswordStrength } from './password-strength';
+import { PasswordStrengthDirective } from './password-strength';
 
-describe('PasswordStrength', () => {
+describe('PasswordStrengthDirective', () => {
   it('should create an instance', () => {
-    const directive = new PasswordStrength();
+    const directive = new PasswordStrengthDirective();
     expect(directive).toBeTruthy();
   });
 });

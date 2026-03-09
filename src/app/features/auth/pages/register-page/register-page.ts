@@ -3,7 +3,7 @@ import { AuthService } from '../../services/auth';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { PasswordStrengthDirective, PasswordStrengthState } from '../../../../shared/directives/password-strength';
+import { PasswordStrengthDirective, PasswordStrengthState } from '../../directives/password-strength';
 import { OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { FormGroup } from '@angular/forms';
