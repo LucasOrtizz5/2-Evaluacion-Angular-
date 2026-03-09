@@ -16,3 +16,7 @@
 .cursor-pointer:hover {
   color: #fff !important;
 }
+
+.grow {
+  flex-grow: 1;
+}

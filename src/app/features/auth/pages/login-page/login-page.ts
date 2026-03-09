@@ -66,7 +66,7 @@ export class LoginPage implements OnInit, OnDestroy {
       this.snackBar.open('¡Bienvenido de vuelta! 🎉', 'Cerrar', {
         duration: 3000
       });
-      this.router.navigate(['/auth/profile']);
+      this.router.navigate(['/characters']);
     } else {
       this.formError = true;
       this.snackBar.open(loginResult.message, 'Cerrar', {

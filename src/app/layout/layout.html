@@ -27,7 +27,6 @@
       <div class="collapse navbar-collapse" id="navbarContent">
 
         <!-- LINKS -->
-        @if (isAuthenticated) {
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
           <li class="nav-item">
@@ -41,16 +40,29 @@
             </a>
           </li>
 
+          <li class="nav-item">
+            <a class="nav-link"
+               routerLink="/episodes"
+               routerLinkActive="active-tab">
+              Episodes
+              <span class="badge bg-danger ms-2">0</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link"
+               routerLink="/locations"
+               routerLinkActive="active-tab">
+              Locations
+            </a>
+          </li>
+
         </ul>
-        }
 
         <!-- DERECHA -->
         <div class="d-flex flex-column flex-lg-row">
-          @if (isAuthenticated) {
-            <span class="text-secondary px-lg-3 py-1">{{ user?.name }}</span>
-            <span class="text-secondary px-lg-3 py-1 cursor-pointer" (click)="goToProfile()">Profile</span>
-            <span class="text-secondary px-lg-3 py-1 cursor-pointer" (click)="logout()">Log Out</span>
-          }
+          <span class="text-secondary px-lg-3 py-1">Profile</span>
+          <span class="text-secondary px-lg-3 py-1">Log Out</span>
         </div>
 
       </div>
