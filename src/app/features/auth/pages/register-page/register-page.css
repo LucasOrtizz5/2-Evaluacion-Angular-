@@ -1,24 +1,31 @@
-/* Password rules - específico de register */
-.password-rules .rule {
-  opacity: 0.6;
-  transition: all 0.25s ease;
+/* Register page - usando estilos compartidos de styles.css */
+
+.register-field--zip {
+  width: min(100%, 8rem) !important;
 }
 
-.password-rules .rule .icon {
-  font-size: 0.875rem;
+.register-card mat-card-content {
+  padding-bottom: 0;
 }
 
-.password-rules .rule.valid {
-  color: #8fffaa;
-  opacity: 1;
-  font-weight: 500;
-}
-
-/* Password Strength Bar */
 .password-strength-container {
+  width: 100%;
   padding: 0 2px;
 }
 
 .password-strength-container mat-progress-bar {
   border-radius: 4px;
+  overflow: hidden;
+}
+
+.password-strength-label {
+  display: inline-block;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+@media (max-width: 767.98px) {
+  .register-field--zip {
+    width: 100% !important;
+  }
 }

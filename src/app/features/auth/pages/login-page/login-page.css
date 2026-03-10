@@ -1,5 +1,10 @@
 /* Login page - usando estilos compartidos de styles.css */
 
+.login-hero-image {
+  max-height: 64vh;
+  object-fit: contain;
+}
+
 a.auth-link {
   cursor: pointer;
   transition: opacity 0.2s;
@@ -9,6 +14,12 @@ a.auth-link:hover {
   opacity: 0.7;
 }
 
-hr {
+.login-layout hr {
   opacity: 0.25;
+}
+
+@media (max-width: 767.98px) {
+  .login-hero-image {
+    max-height: none;
+  }
 }

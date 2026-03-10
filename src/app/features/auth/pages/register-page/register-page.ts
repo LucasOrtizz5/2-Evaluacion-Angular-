@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { AuthService } from '../../services/auth';
 import { Router, RouterLink } from '@angular/router';
-import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { PasswordStrengthDirective, PasswordStrengthState } from '../../directives/password-strength';
 import { OnInit, OnDestroy } from '@angular/core';
@@ -14,11 +14,23 @@ import { MatCardModule } from '@angular/material/card';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelectModule } from '@angular/material/select';
+
+const passwordsMatchValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
+  const password = control.get('password')?.value;
+  const confirmPassword = control.get('confirmPassword')?.value;
+
+  if (!password || !confirmPassword) {
+    return null;
+  }
+
+  return password === confirmPassword ? null : { passwordMismatch: true };
+};
 
 @Component({
   selector: 'app-register-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, PasswordStrengthDirective, MatFormFieldModule, MatInputModule, MatButtonModule, MatCardModule, MatSnackBarModule, MatProgressBarModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, PasswordStrengthDirective, MatFormFieldModule, MatInputModule, MatButtonModule, MatCardModule, MatSnackBarModule, MatProgressBarModule, MatSelectModule],
   templateUrl: './register-page.html',
   styleUrl: './register-page.css'
 })
@@ -36,6 +48,8 @@ export class RegisterPage implements OnInit, OnDestroy {
 
   formError = false;
 
+  readonly stateOptions = ['Argentina', 'Uruguay', 'Chile', 'Brasil', 'Paraguay'];
+
   passwordState: PasswordStrengthState = {
     minLength: false,
     uppercase: false,
@@ -48,8 +62,13 @@ export class RegisterPage implements OnInit, OnDestroy {
     this.registerForm = this.fb.group({
       name: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
-    });
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', Validators.required],
+      address: ['', Validators.required],
+      city: ['', Validators.required],
+      state: ['Argentina', Validators.required],
+      zip: ['', [Validators.required, Validators.pattern('^[0-9]{4,10}$')]]
+    }, { validators: passwordsMatchValidator });
 
     // Suscribirse a los cambios de estado del formulario para mostrar/ocultar errores en tiempo real
     this.subscriptions.push(
@@ -85,9 +104,11 @@ export class RegisterPage implements OnInit, OnDestroy {
 
     this.formError = false;
 
+    const { confirmPassword, ...formValue } = this.registerForm.getRawValue();
+
     const user = {
       id: Date.now().toString(),
-      ...this.registerForm.value
+      ...formValue
     };
 
     this.authService.register(user as any);
