@@ -45,9 +45,10 @@ export class MainLayout {
   }
 
   logout(): void {
-    this.authService.logout();
-    this.closeNavbar();
-    this.router.navigate(['/auth/login']);
+    this.authService.logout().subscribe(() => {
+      this.closeNavbar();
+      this.router.navigate(['/auth/login']);
+    });
   }
 
   goToProfile(): void {

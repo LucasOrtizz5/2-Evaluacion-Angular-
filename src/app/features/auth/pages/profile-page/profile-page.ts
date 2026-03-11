@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, effect, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth';
 import { Router } from '@angular/router';
@@ -27,14 +27,28 @@ export class ProfilePage implements OnInit, OnDestroy {
 
   private subscriptions: Subscription[] = [];
 
-  user = this.authService.getUser();
+  readonly user = this.authService.currentUser;
   profileForm!: FormGroup;
   formError = false;
 
+  constructor() {
+    effect(() => {
+      const currentUser = this.user();
+      if (!currentUser || !this.profileForm) {
+        return;
+      }
+
+      this.profileForm.patchValue({
+        name: currentUser.name ?? '',
+        email: currentUser.email ?? ''
+      }, { emitEvent: false });
+    });
+  }
+
   ngOnInit(): void {
     this.profileForm = this.fb.group({
-      name: [this.user?.name || '', Validators.required],
-      email: [this.user?.email || '', [Validators.required, Validators.email]]
+      name: [this.user()?.name || '', Validators.required],
+      email: [this.user()?.email || '', [Validators.required, Validators.email]]
     });
 
     // El cartel de alerta desaparece cuando el formulario es válido
@@ -60,24 +74,17 @@ export class ProfilePage implements OnInit, OnDestroy {
 
     this.formError = false;
 
-    // Actualizar información del usuario
-    const updatedUser = {
-      ...this.user,
-      ...this.profileForm.value
-    };
-
-    // Guardar en localStorage (simulando actualización)
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    this.user = updatedUser;
-
-    this.snackBar.open('Perfil actualizado exitosamente 🎉', 'Cerrar', {
+    this.snackBar.open('Profile update endpoint is not available yet.', 'Close', {
       duration: 3000
     });
   }
 
-  logout() {
-    this.authService.logout();
-    this.router.navigate(['/auth/register']);
+  logout(): void {
+    this.subscriptions.push(
+      this.authService.logout().subscribe(() => {
+        this.router.navigate(['/auth/login']);
+      })
+    );
   }
 
   ngOnDestroy(): void {
