@@ -15,6 +15,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
+import { RegisterPayload } from '../../services/auth';
 
 const confirmPasswordValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   if (!control.value || !control.parent) {
@@ -46,6 +47,7 @@ export class RegisterPage implements OnInit, OnDestroy {
   registerForm!: FormGroup;
 
   formError = false;
+  isSubmitting = false;
 
   readonly stateOptions = ['Argentina', 'Uruguay', 'Chile', 'Brasil', 'Paraguay'];
 
@@ -100,34 +102,35 @@ export class RegisterPage implements OnInit, OnDestroy {
       return;
     }
 
-    // Verificar si el email ya está registrado
-    const email = this.registerForm.value.email;
-    if (this.authService.emailExists(email)) {
-      this.formError = true;
-      this.snackBar.open('Este email ya está registrado. Por favor usá otro.', 'Cerrar', {
-        duration: 3000,
-        verticalPosition: 'top'
-      });
-      return;
-    }
-
     this.formError = false;
+    this.isSubmitting = true;
 
-    const { confirmPassword, ...formValue } = this.registerForm.getRawValue();
-
-    const user = {
-      id: Date.now().toString(),
-      ...formValue
+    const { confirmPassword, state, ...formValue } = this.registerForm.getRawValue();
+    const payload: RegisterPayload = {
+      ...formValue,
+      country: state,
     };
 
-    this.authService.register(user as any);
-
-    this.snackBar.open('Registro exitoso 🎉', 'Cerrar', {
-      duration: 3000,
-      verticalPosition: 'top'
-    });
-
-    this.router.navigate(['/characters']);
+    this.subscriptions.push(
+      this.authService.register(payload).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.snackBar.open('Registration successful. Please sign in.', 'Close', {
+            duration: 3000,
+            verticalPosition: 'top'
+          });
+          this.router.navigate(['/auth/login']);
+        },
+        error: (error) => {
+          this.isSubmitting = false;
+          this.formError = true;
+          this.snackBar.open(this.getErrorMessage(error, 'Could not complete registration'), 'Close', {
+            duration: 3000,
+            verticalPosition: 'top'
+          });
+        }
+      })
+    );
 
   }
 
@@ -145,6 +148,11 @@ export class RegisterPage implements OnInit, OnDestroy {
 
   onPasswordBlur(): void {
     this.showPasswordRequirements = false;
+  }
+
+  private getErrorMessage(error: unknown, fallback: string): string {
+    const message = (error as { error?: { header?: { error?: string } } })?.error?.header?.error;
+    return typeof message === 'string' ? message : fallback;
   }
 
 }

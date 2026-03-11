@@ -30,6 +30,7 @@ export class LoginPage implements OnInit, OnDestroy {
 
   loginForm!: FormGroup;
   formError = false;
+  isSubmitting = false;
 
   ngOnInit(): void {
     this.loginForm = this.fb.group({
@@ -64,34 +65,39 @@ export class LoginPage implements OnInit, OnDestroy {
     }
 
     this.formError = false;
+    this.isSubmitting = true;
 
-    // Guardar credenciales si remember me está marcado
+    // Guardar solo el email si remember me está marcado.
     if (this.loginForm.value.rememberMe) {
-      this.saveCredentials(this.loginForm.value.email, this.loginForm.value.password);
+      this.saveCredentials(this.loginForm.value.email);
     } else {
       this.clearSavedCredentials();
     }
 
-    // Validar credenciales contra localStorage
-    const loginResult = this.authService.login(this.loginForm.value.email, this.loginForm.value.password);
-
-    if (loginResult.success) {
-      this.snackBar.open('¡Bienvenido de vuelta! 🎉', 'Cerrar', {
-        duration: 3000,
-        verticalPosition: 'top'
-      });
-      this.router.navigate(['/characters']);
-    } else {
-      this.formError = true;
-      this.snackBar.open(loginResult.message, 'Cerrar', {
-        duration: 3000,
-        verticalPosition: 'top'
-      });
-    }
+    this.subscriptions.push(
+      this.authService.login(this.loginForm.value.email, this.loginForm.value.password).subscribe({
+        next: () => {
+          this.isSubmitting = false;
+          this.snackBar.open('Welcome back!', 'Close', {
+            duration: 3000,
+            verticalPosition: 'top'
+          });
+          this.router.navigate(['/characters']);
+        },
+        error: (error) => {
+          this.isSubmitting = false;
+          this.formError = true;
+          this.snackBar.open(this.getErrorMessage(error, 'Invalid email or password'), 'Close', {
+            duration: 3000,
+            verticalPosition: 'top'
+          });
+        }
+      })
+    );
   }
 
-  private saveCredentials(email: string, password: string): void {
-    const credentials = { email, password };
+  private saveCredentials(email: string): void {
+    const credentials = { email };
     localStorage.setItem('rememberMeCredentials', JSON.stringify(credentials));
   }
 
@@ -101,7 +107,6 @@ export class LoginPage implements OnInit, OnDestroy {
       const credentials = JSON.parse(saved);
       this.loginForm.patchValue({
         email: credentials.email,
-        password: credentials.password,
         rememberMe: true
       });
     }
@@ -109,6 +114,11 @@ export class LoginPage implements OnInit, OnDestroy {
 
   private clearSavedCredentials(): void {
     localStorage.removeItem('rememberMeCredentials');
+  }
+
+  private getErrorMessage(error: unknown, fallback: string): string {
+    const message = (error as { error?: { header?: { error?: string } } })?.error?.header?.error;
+    return typeof message === 'string' ? message : fallback;
   }
 
   ngOnDestroy(): void {

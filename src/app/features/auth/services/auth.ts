@@ -1,61 +1,121 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { User } from '../interfaces/user';
+import { environment } from '../../../../environments/environment';
+import { catchError, firstValueFrom, map, Observable, of, switchMap, tap } from 'rxjs';
+
+interface ApiResponse<T> {
+  header: {
+    resultCode: number;
+    error?: string;
+  };
+  data: T;
+}
+
+interface ApiHeaderOnlyResponse {
+  header: {
+    resultCode: number;
+    error?: string;
+  };
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  address: string;
+  city: string;
+  country: string;
+  zip: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = environment.apiUrl;
+  private initPromise: Promise<void> | null = null;
 
-  private readonly STORAGE_KEY = 'currentUser';
-  private readonly USERS_KEY = 'registeredUsers';
-  private readonly currentUserState = signal<User | null>(this.readStoredUser());
+  private readonly currentUserState = signal<User | null>(null);
+  private readonly initializedState = signal(false);
 
   readonly currentUser = computed(() => this.currentUserState());
   readonly authenticated = computed(() => !!this.currentUserState());
+  readonly initialized = computed(() => this.initializedState());
 
-  // Registro de un nuevo usuario, guardando su información en localStorage
-  register(user: User): void {
-    // Se utiliza stringify para convertir el objeto user en un string antes de guardarlo en localStorage, ya que localStorage solo puede almacenar strings.
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user));
-    this.currentUserState.set(user);
-
-    // Guardar en lista de usuarios registrados para login
-    const registeredUsers = this.getAllRegisteredUsers();
-    registeredUsers.push(user);
-    localStorage.setItem(this.USERS_KEY, JSON.stringify(registeredUsers));
-  }
-
-  // Login de un usuario, verificando sus credenciales contra los usuarios registrados en localStorage.
-  login(email: string, password: string): { success: boolean; message: string } {
-    const registeredUsers = this.getAllRegisteredUsers();
-
-    const user = registeredUsers.find(u => u.email === email && u.password === password);
-
-    if (user) {
-      // Si el usuario existe y las credenciales son correctas, lo establece como usuario actual
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user));
-      this.currentUserState.set(user);
-      return { success: true, message: 'Sesión iniciada correctamente' };
+  initializeAuth(): Promise<void> {
+    if (this.initializedState()) {
+      return Promise.resolve();
     }
 
-    return { success: false, message: 'Email o contraseña incorrectos' };
+    if (!this.initPromise) {
+      this.initPromise = firstValueFrom(
+        this.fetchCurrentUser().pipe(
+          tap((user) => this.currentUserState.set(user)),
+          map(() => void 0),
+          catchError(() => {
+            this.currentUserState.set(null);
+            return of(void 0);
+          }),
+          tap(() => this.initializedState.set(true))
+        )
+      );
+    }
+
+    return this.initPromise;
   }
 
-  private getAllRegisteredUsers(): User[] {
-    const data = localStorage.getItem(this.USERS_KEY);
-    return data ? JSON.parse(data) : [];
+  register(payload: RegisterPayload): Observable<User> {
+    return this.http
+      .post<ApiResponse<User>>(`${this.apiUrl}/auth/register`, payload, {
+        withCredentials: true,
+      })
+      .pipe(map((response) => response.data));
   }
 
-  emailExists(email: string): boolean {
-    const registeredUsers = this.getAllRegisteredUsers();
-    return registeredUsers.some(u => u.email === email);
+  login(email: string, password: string): Observable<User> {
+    return this.http
+      .post<ApiHeaderOnlyResponse>(
+        `${this.apiUrl}/auth/login`,
+        { email, password },
+        { withCredentials: true }
+      )
+      .pipe(switchMap(() => this.me()));
+  }
+
+  me(): Observable<User> {
+    return this.fetchCurrentUser().pipe(
+      map((user) => {
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+        return user;
+      }),
+      tap((user) => {
+        this.currentUserState.set(user);
+        this.initializedState.set(true);
+      })
+    );
+  }
+
+  logout(): Observable<void> {
+    return this.http
+      .post<ApiHeaderOnlyResponse>(`${this.apiUrl}/auth/logout`, {}, { withCredentials: true })
+      .pipe(
+        map(() => void 0),
+        tap(() => this.currentUserState.set(null)),
+        catchError(() => {
+          this.currentUserState.set(null);
+          return of(void 0);
+        })
+      );
   }
 
   getCurrentUser(): User | null {
     return this.currentUserState();
   }
 
-  //Metodo para saber si el usuario esta logueado, verificando si hay un usuario almacenado en localStorage.
   isAuthenticated(): boolean {
     return this.authenticated();
   }
@@ -64,13 +124,12 @@ export class AuthService {
     return this.currentUserState();
   }
 
-  logout(): void {
-    localStorage.removeItem(this.STORAGE_KEY);
-    this.currentUserState.set(null);
-  }
-
-  private readStoredUser(): User | null {
-    const data = localStorage.getItem(this.STORAGE_KEY);
-    return data ? JSON.parse(data) : null;
+  private fetchCurrentUser(): Observable<User | null> {
+    return this.http
+      .get<ApiResponse<User>>(`${this.apiUrl}/auth/me`, { withCredentials: true })
+      .pipe(
+        map((response) => response.data),
+        catchError(() => of(null))
+      );
   }
 }
